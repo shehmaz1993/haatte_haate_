@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:haate_haate/autofill.dart';
 import 'package:haate_haate/sign_in.dart';
+import 'loadingpage.dart';
+import 'usermodel.dart';
 
 import 'Size.dart';
+import 'package:http/http.dart' as http;
 
 class SignUp extends StatefulWidget {
   @override
@@ -11,16 +15,81 @@ class SignUp extends StatefulWidget {
 }
 
 class _SignUpState extends State<SignUp> {
+   String privateusername=' ';
+   String privatepassword=' ';
+   String privatepassword2=' ';
+   String privatesendingotp=' ';
+   String privatesendingotp1=' ';
+   String privateisphoneverified='';
+   String privateotp=' ';
+
+
   @override
   void initState() {
+    createUser(privateusername, privatepassword, privatepassword2, privatesendingotp, privateisphoneverified, privateotp);
     super.initState();
+
 
     SystemChrome.setEnabledSystemUIOverlays([]);
   }
   String _selectedCountryCode='+88';
   TextEditingController _password= TextEditingController();
   TextEditingController _confirmpassword=TextEditingController();
+  TextEditingController _phonenumber=TextEditingController();
   var formkey= GlobalKey<FormState>();
+ // User _user;
+    User user;
+//http response
+  Future<User> createUser(String username,String password,String password2,String sendOtp,String isPhoneVerified,String otp )async{
+    final String url="https://haatehaate.herokuapp.com/api/v1/user/registration/phase-1/";
+    final String url1="https://haatehaate.herokuapp.com/api/v1/user/registration/send-otp-for-registration/";
+
+    final response=await  http.post(url,body: {
+      'username':username,
+      'password':password,
+      'password2':password2,
+      'send_otp':sendOtp,
+      'is_phone_verified': isPhoneVerified,
+      'otp':otp
+    });
+
+    if(response.statusCode==201 ){
+
+    print('api calling is successsful......');
+
+
+      final String  responsestring  = response.body;
+      return userFromJson(responsestring);
+      print(userFromJson(responsestring));
+    }
+    else{
+      return null;
+      //throw ('Failed to connect');
+    }
+
+
+  }
+ /* Future<User> createUserWithOtp(String username,String sendOtp,String isPhoneVerified )async
+  {
+    final String url1="https://haatehaate.herokuapp.com/api/v1/user/registration/send-otp-for-registration/";
+    final response=await  http.post(url1,body: {
+      'username':username,
+      'send_otp':sendOtp,
+      'is_phone_verified': isPhoneVerified
+    });
+
+    if(response.statusCode==201 ){
+      final String  responsestring  = response.body;
+      return userFromJson(responsestring);
+      print(userFromJson(responsestring));
+    }
+    else{
+      //return null;
+      throw ('Failed to connect');
+    }
+
+
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +186,7 @@ class _SignUpState extends State<SignUp> {
                                      margin: new EdgeInsets.only(top: 10.0, bottom: 10.0, right: 3.0,left:10.0),
                                      color: Colors.white,
                                      child: TextFormField(
+                                         controller: _phonenumber,
                                          maxLength: 11,
                                          keyboardType: TextInputType.number,
                                          decoration: InputDecoration(
@@ -128,10 +198,10 @@ class _SignUpState extends State<SignUp> {
                                          ),
                                        validator: ( value){
                                            if(value.length==0){
-                                             return ("Phone number must be required");
+                                             return ("Phone number must required");
                                            }
                                            if(value.length!=11){
-                                             return ("Phone number must be 10 digits");
+                                             return ("Enter valid Phone number");
                                            }
                                            return null;
 
@@ -204,11 +274,35 @@ class _SignUpState extends State<SignUp> {
                                   child: MaterialButton(
                                       color:Colors.red ,
                                       child:Text('SIGN UP',style: TextStyle(color: Colors.white70,fontSize:20.0,fontWeight: FontWeight.bold ),),
-                                      onPressed:(){
-                                        if(formkey.currentState.validate())
-                                          print('Valid');
-                                        else
-                                          print('inValid');
+                                      onPressed:() async{
+                                        setState(() {
+                                          privateusername=_phonenumber.text;
+                                           privatepassword=_password.text;
+                                           privatepassword2=_confirmpassword.text;
+                                           privatesendingotp=' ';
+                                           privatesendingotp1='true ';
+                                           privateisphoneverified='false';
+                                           privateotp='0';
+
+                                        });
+
+
+                                        //final User user = await createUser(privateusername, privatepassword,privatesendingotp);
+
+
+                                        if (formkey.currentState.validate()) {
+                                          print('from validate done.....');
+                                         /* Route route =MaterialPageRoute(builder: (context)=>Load());
+                                          Navigator.push(context,route);*/
+                                         // _showdialog(context);
+                                            user = await createUser(privateusername, privatepassword,privatepassword2,privatesendingotp1,privateisphoneverified,privateotp);
+                                       //  final User user1=await  createUserWithOtp(privateusername,privatesendingotp1, privateisphoneverified);
+
+
+                                          _showdialog(context);
+                                          //print(_user.username);
+
+                                        }
                                       }
                                   ),
                                 ),
@@ -245,5 +339,56 @@ class _SignUpState extends State<SignUp> {
       ),
     );
 
+
+  }
+  _showdialog(BuildContext context){
+    return showDialog(context: context,builder: (context){
+      return AlertDialog(
+        title:Text("Confirm Phone Number",style: TextStyle(color: Colors.black,fontSize: 20.0,fontWeight: FontWeight.bold)),
+          content:SingleChildScrollView(
+            child: ListBody(
+              children: [
+
+                Text("Please varify that your phone number:"+user.username),
+                SizedBox(height: 15,),
+                Text(_phonenumber.text,style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),),
+                SizedBox(height: 15,),
+                Text("is correct, before proceeding to OTP varification"),
+              ],
+            ),
+          ),
+        actions: [
+          RaisedButton(
+
+              child:Text("Proceed",style: TextStyle(color: Colors.red,fontSize: 11.0)),
+              onPressed: (){
+               print('user name is.... ');
+
+                 Navigator.push(context, MaterialPageRoute(builder: (context){
+
+                   return SmsVerification( username1:user.username,password1:user.password,confirmpassword:user.password2,otp1: user.otp);
+                 }),
+                 );
+
+
+              }
+              ),
+         RaisedButton(
+
+              child:Text("Edit",style: TextStyle(color: Colors.red,fontSize: 11.0)),
+              onPressed: (){
+                Navigator.pop(context);
+              })
+        ],
+        
+
+      );
+    });
+  }
+  _navigatetoloading(BuildContext context){
+    Navigator.push(context, MaterialPageRoute(builder: (context){
+
+      return Load();
+    }));
   }
 }
