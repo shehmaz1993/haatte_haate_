@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:haate_haate/sign_up.dart';
 import 'package:sms_autofill/sms_autofill.dart';
@@ -15,44 +17,23 @@ class SmsVerification extends StatefulWidget {
   final String username1;
   final String otp1;
   final String password1;
-  final String confirmpassword;
 
 
-// SmsVerification({Key key, this.value}) : super(key: key);
-  SmsVerification({ this.username1,this.otp1,this.password1,this.confirmpassword});
+
+   SmsVerification({Key key,@required this.username1,@required this.password1,@required this.otp1}) : super(key: key);
+ // SmsVerification({ this.username1,this.otp1,this.password1,this.confirmpassword});
 
   @override
-  _SmsVerificationState createState() => _SmsVerificationState(username1,otp1,password1,confirmpassword);
+  _SmsVerificationState createState() => _SmsVerificationState();
 }
 
 class _SmsVerificationState extends State<SmsVerification> {
-  String username1;
+ /* String username1;
   String otp1;
    String password1;
   String confirmpassword;
-  _SmsVerificationState(username1,otp1,password1,confirmpassword);
-   Future<User> phase2(String username,String otp,String isPhoneVerified )async
-  {
-    final String url1="https://haatehaate.herokuapp.com/api/v1/user/registration/send-otp-for-registration/";
-    final response=await  http.post(url1,body: {
-      'username':username,
-      'otp':otp,
-      'is_phone_verified': isPhoneVerified
-    });
+  _SmsVerificationState(username1,otp1,password1,confirmpassword);*/
 
-    if(response.statusCode==201 ){
-      print('user succesfully registered');
-      final String  responsestring  = response.body;
-      return userFromJson(responsestring);
-      print(userFromJson(responsestring));
-    }
-    else{
-      //return null;
-      throw ('Failed to connect');
-    }
-
-
-  }
 
  @override
    void initState() {
@@ -106,13 +87,27 @@ class _SmsVerificationState extends State<SmsVerification> {
                    child: RaisedButton(
                        child: Text('Verify',style:TextStyle(color: Colors.grey,fontWeight: FontWeight.bold)),
 
-                       onPressed: (){
-                         String _isphoneverified= 'false';
-                        phase2(username1, otp1, _isphoneverified);
+                       onPressed: ()async{
+                         Map data = {
+                           'username':widget.username1,
+                           'otp': widget.otp1,
+                           'is_phone_verified':'false',
+                         };
+                         String body = json.encode(data);
+                         Map<String, String> headers = {"Content-type": "application/json"};
+                         final response = await http.post('https://haatehaate.herokuapp.com/api/v1/user/registration/phase-2/',headers: headers, body: body);
+                         print('result is.....'+response.body);
+                         final Map user_info= json.decode(response.body);
+                         username=user_info["pending_response"]["sms"]["username"];
+                         print(username);
+
 
                    }),
                  ),
-               )
+               ),
+              Container(
+                child: Text('user name is :${widget.username1} , otp is ${widget.otp1}'),
+              ),
 
             ],
           ),
